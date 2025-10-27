@@ -345,7 +345,7 @@ if __name__ == "__main__":
                 node_name = sys.argv[2]
                 lat = float(sys.argv[3])
                 lon = float(sys.argv[4])
-                direct_to_gw = sys.argv[5].lower() == 'true'
+                direct_to_gw = planner.calculate_direct_to_gw(lat, lon)
                 
                 result = planner.calculate_routes_for_node(node_name, lat, lon, direct_to_gw)
                 print(json.dumps(result))
