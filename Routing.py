@@ -177,7 +177,7 @@ class LoRaNetworkPlanner:
         return connection_map, unavailable_connections
     
     def find_best_tree(self, connection_map):
-        """Find the optimal tree using BFS with capacity constraints"""
+        """Find the optimal tree using BFS - Gateway can have unlimited children"""
         if not self.gateway:
             return None
         
@@ -198,15 +198,14 @@ class LoRaNetworkPlanner:
             if current in connection_map:
                 for neighbor in connection_map[current]:
                     if neighbor != 'gateway' and not self.nodes[neighbor]['visited']:
-                        # Check if current node can accept more children
+                        # Gateway can have unlimited children
                         if current == 'gateway':
-                            if len(self.gateway['children']) < 4:
-                                self.nodes[neighbor]['parent'] = 'gateway'
-                                self.nodes[neighbor]['visited'] = True
-                                self.gateway['children'].append(neighbor)
-                                queue.append(neighbor)
-                                visited_count += 1
-                                print(f"  Tree: Gateway → {neighbor}")
+                            self.nodes[neighbor]['parent'] = 'gateway'
+                            self.nodes[neighbor]['visited'] = True
+                            self.gateway['children'].append(neighbor)
+                            queue.append(neighbor)
+                            visited_count += 1
+                            print(f"  Tree: Gateway → {neighbor}")
                         else:
                             if len(self.nodes[current]['children']) < 4:
                                 self.nodes[neighbor]['parent'] = current
