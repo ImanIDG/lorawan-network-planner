@@ -277,48 +277,48 @@ class LoRaNetworkPlanner:
 
     def calculate_routes_for_node(self, node_name, lat, lon):
         """Calculate routes for a specific node and return configuration"""
-        # Calculate directToGateway automatically
+
+        existing_data = self.load_routes_from_file()
+        if existing_data and 'nodes' in existing_data:
+            self.nodes = existing_data['nodes']
+            self.gateway = existing_data.get('gateway', None)
+            print(f"✓ Loaded {len(self.nodes)} nodes from previous routes")
+
+        if not self.gateway:
+            print("⚠ No gateway defined — using default (0,0)")
+            self.gateway = {'name': 'GW', 'lat': 0, 'lon': 0, 'type': 'gateway', 'children': [], 'parent': None, 'freq_down': 3}
+
         direct_to_gw = self.calculate_direct_to_gw(lat, lon)
-        
-        # Update node position
         self.update_node_position(node_name, lat, lon, direct_to_gw)
-        
-        # Build connection map and find best tree
         connection_map = self.build_connection_map()
         unreachable_nodes, connected_count = self.find_best_tree(connection_map)
-        
-        # Assign frequencies
         self.assign_frequencies()
-        
-        # Save routes to file
         self.save_routes_to_file(connection_map, unreachable_nodes)
-        
-        # Generate configuration for the specific node
         if node_name in self.nodes:
             node = self.nodes[node_name]
-            if node['parent']:  # Only if node is reachable
-                config = {
+            if node['parent']:
+                return {
                     'node_name': node_name,
-                    'parent': node['parent'],  # This goes to routes file, not Java
+                    'parent': node['parent'],
                     'freq_up': node['freq_up'],
                     'freq_down': node.get('freq_down'),
                     'reachable': True,
-                    'direct_to_gw': direct_to_gw,  # Calculated value
+                    'direct_to_gw': direct_to_gw,
                     'connected_nodes': connected_count,
                     'unreachable_nodes': len(unreachable_nodes)
                 }
-                return config
-        
+
         return {
             'node_name': node_name,
             'parent': None,
             'freq_up': None,
             'freq_down': None,
             'reachable': False,
-            'direct_to_gw': direct_to_gw,  # Calculated value
+            'direct_to_gw': direct_to_gw,
             'connected_nodes': connected_count,
             'unreachable_nodes': len(unreachable_nodes)
         }
+
 
 def main():
     """Standalone mode for testing"""
@@ -341,13 +341,15 @@ if __name__ == "__main__":
         planner = LoRaNetworkPlanner()
         
         if sys.argv[1] == "calculate_route":
-            if len(sys.argv) >= 6:
+            if len(sys.argv) >= 7:
                 node_name = sys.argv[2]
                 lat = float(sys.argv[3])
                 lon = float(sys.argv[4])
-                direct_to_gw = planner.calculate_direct_to_gw(lat, lon)
-                
-                result = planner.calculate_routes_for_node(node_name, lat, lon, direct_to_gw)
+                gw_lat = float(sys.argv[5])
+                gw_lon = float(sys.argv[6])
+
+                planner.set_gateway_position(gw_lat, gw_lon)
+                result = planner.calculate_routes_for_node(node_name, lat, lon)
                 print(json.dumps(result))
             else:
                 print("Error: Insufficient arguments for calculate_route")
